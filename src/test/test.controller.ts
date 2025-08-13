@@ -9,4 +9,11 @@ export class TestController {
       root: './requests' 
     });
   }
+
+  @Get('rooms/new')
+  getRoomTestPageNew(@Res() res: Response) {
+    return res.sendFile('room-test-new.html', { 
+      root: './requests' 
+    });
+  }
 }
