@@ -82,7 +82,7 @@ export class RoomController {
     return {
       roomId: room.id,
       roomName: room.name,
-      participants: room.participants,
+      participants: this.roomService.getParticipantsWithNames(id),
       participantCount: room.participants.length,
     };
   }

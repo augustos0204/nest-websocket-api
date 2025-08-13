@@ -39,11 +39,14 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const rooms = this.roomService.getAllRooms();
     rooms.forEach(room => {
       if (room.participants.includes(client.id)) {
+        const participantName = this.roomService.getParticipantName(room.id, client.id);
         this.roomService.leaveRoom(room.id, client.id);
         client.to(room.id).emit('userLeft', {
           clientId: client.id,
+          participantName,
           roomId: room.id,
           roomName: room.name,
+          participantCount: room.participants.length,
         });
       }
     });
@@ -51,10 +54,10 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   @SubscribeMessage('joinRoom')
   handleJoinRoom(
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: { roomId: string; participantName?: string },
     @ConnectedSocket() client: Socket,
   ): void {
-    const { roomId } = data;
+    const { roomId, participantName } = data;
     const room = this.roomService.getRoom(roomId);
     
     if (!room) {
@@ -66,11 +69,12 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     client.join(roomId);
     
     // Adicionar ao serviço
-    this.roomService.joinRoom(roomId, client.id);
+    this.roomService.joinRoom(roomId, client.id, participantName || null);
     
     // Notificar outros usuários na sala
     client.to(roomId).emit('userJoined', {
       clientId: client.id,
+      participantName: participantName || null,
       roomId: room.id,
       roomName: room.name,
       participantCount: room.participants.length,
@@ -80,7 +84,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     client.emit('joinedRoom', {
       roomId: room.id,
       roomName: room.name,
-      participants: room.participants,
+      participants: this.roomService.getParticipantsWithNames(roomId),
       recentMessages: room.messages.slice(-10), // Últimas 10 mensagens
     });
 
@@ -104,8 +108,10 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const room = this.roomService.getRoom(roomId);
       
       // Notificar outros usuários na sala
+      const participantName = this.roomService.getParticipantName(roomId, client.id);
       client.to(roomId).emit('userLeft', {
         clientId: client.id,
+        participantName,
         roomId: roomId,
         roomName: room?.name,
         participantCount: room?.participants.length || 0,
@@ -162,9 +168,39 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       id: room.id,
       name: room.name,
       participantCount: room.participants.length,
-      participants: room.participants,
+      participants: this.roomService.getParticipantsWithNames(roomId),
       messageCount: room.messages.length,
       createdAt: room.createdAt,
     });
+  }
+
+  @SubscribeMessage('updateParticipantName')
+  handleUpdateParticipantName(
+    @MessageBody() data: { roomId: string; participantName: string | null },
+    @ConnectedSocket() client: Socket,
+  ): void {
+    const { roomId, participantName } = data;
+    
+    const success = this.roomService.updateParticipantName(roomId, client.id, participantName);
+    
+    if (success) {
+      // Notificar outros usuários na sala sobre a atualização do nome
+      client.to(roomId).emit('participantNameUpdated', {
+        clientId: client.id,
+        participantName,
+        roomId,
+      });
+
+      // Confirmar atualização para o cliente
+      client.emit('participantNameUpdated', {
+        clientId: client.id,
+        participantName,
+        roomId,
+      });
+
+      this.logger.log(`Nome do participante ${client.id} atualizado para: ${participantName || 'sem nome'}`);
+    } else {
+      client.emit('error', { message: 'Não foi possível atualizar o nome' });
+    }
   }
 }
