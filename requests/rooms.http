@@ -1,0 +1,203 @@
+### Variáveis
+@baseUrl = http://localhost:3000
+@roomName = Sala de Teste REST Client
+@roomNameUpdate = Sala Atualizada
+@roomId = {{createRoom.response.body.id}}
+
+### 1. 📋 Listar todas as salas
+# @name getAllRooms
+GET {{baseUrl}}/room
+Accept: application/json
+
+###
+
+### 2. ➕ Criar uma nova sala
+# @name createRoom
+POST {{baseUrl}}/room
+Content-Type: application/json
+
+{
+  "name": "{{roomName}}"
+}
+
+###
+
+### 3. 🔍 Buscar sala específica (usar ID da sala criada acima)
+# @name getRoom
+GET {{baseUrl}}/room/{{roomId}}
+Accept: application/json
+
+###
+
+### 4. 💬 Buscar mensagens de uma sala específica
+# @name getRoomMessages  
+GET {{baseUrl}}/room/{{roomId}}/messages
+Accept: application/json
+
+###
+
+### 5. 👥 Buscar participantes de uma sala específica
+# @name getRoomParticipants
+GET {{baseUrl}}/room/{{roomId}}/participants
+Accept: application/json
+
+###
+
+### 6. 🗑️ Deletar uma sala específica
+# @name deleteRoom
+DELETE {{baseUrl}}/room/{{roomId}}
+Accept: application/json
+
+###
+
+###############################################
+# 🧪 TESTES ESPECÍFICOS
+###############################################
+
+### 7. ❌ Tentar criar sala sem nome (deve retornar erro 400)
+# @name createRoomWithoutName
+POST {{baseUrl}}/room
+Content-Type: application/json
+
+{
+  "name": ""
+}
+
+###
+
+### 8. ❌ Tentar buscar sala inexistente (deve retornar erro 404)
+# @name getRoomNotFound
+GET {{baseUrl}}/room/sala-inexistente-123
+Accept: application/json
+
+###
+
+### 9. ❌ Tentar deletar sala inexistente (deve retornar erro 404)
+# @name deleteRoomNotFound
+DELETE {{baseUrl}}/room/sala-inexistente-123
+Accept: application/json
+
+###
+
+### 10. ❌ Tentar buscar mensagens de sala inexistente (deve retornar erro 404)
+# @name getRoomMessagesNotFound
+GET {{baseUrl}}/room/sala-inexistente-123/messages
+Accept: application/json
+
+###
+
+### 11. ❌ Tentar buscar participantes de sala inexistente (deve retornar erro 404)
+# @name getRoomParticipantsNotFound
+GET {{baseUrl}}/room/sala-inexistente-123/participants
+Accept: application/json
+
+###
+
+###############################################
+# 🚀 FLUXO COMPLETO DE TESTE
+###############################################
+
+### 12. 🔄 Criar múltiplas salas para teste
+# @name createTestRoom1
+POST {{baseUrl}}/room
+Content-Type: application/json
+
+{
+  "name": "Sala de Chat Geral"
+}
+
+###
+
+# @name createTestRoom2
+POST {{baseUrl}}/room
+Content-Type: application/json
+
+{
+  "name": "Sala de Desenvolvedores"
+}
+
+###
+
+# @name createTestRoom3
+POST {{baseUrl}}/room
+Content-Type: application/json
+
+{
+  "name": "Sala de Suporte"
+}
+
+###
+
+### 13. 📊 Verificar todas as salas após criação
+# @name getAllRoomsAfterCreation
+GET {{baseUrl}}/room
+Accept: application/json
+
+###
+
+###############################################
+# 🎯 TESTES COM IDs ESPECÍFICOS
+###############################################
+
+### 14. 🆔 Usar ID específico para testes (substitua pelo ID real)
+@specificRoomId = room_1234567890_abcdef123
+
+### Buscar sala com ID específico
+GET {{baseUrl}}/room/{{specificRoomId}}
+Accept: application/json
+
+###
+
+### Buscar mensagens da sala específica
+GET {{baseUrl}}/room/{{specificRoomId}}/messages
+Accept: application/json
+
+###
+
+### Buscar participantes da sala específica
+GET {{baseUrl}}/room/{{specificRoomId}}/participants
+Accept: application/json
+
+###
+
+### Deletar sala específica
+DELETE {{baseUrl}}/room/{{specificRoomId}}
+Accept: application/json
+
+###
+
+###############################################
+# 🌐 TESTE DA PÁGINA WEB
+###############################################
+
+### 15. 🖥️ Acessar página de teste (deve retornar HTML)
+# @name getTestPage
+GET {{baseUrl}}/tests/rooms
+Accept: text/html
+
+###
+
+###############################################
+# 📝 DOCUMENTAÇÃO DE USO
+###############################################
+
+# Como usar este arquivo:
+# 
+# 1. Certifique-se de que o servidor NestJS está rodando na porta 3000
+# 2. Execute as requisições na ordem para testar o fluxo completo
+# 3. A variável {{roomId}} será automaticamente preenchida após criar uma sala
+# 4. Para usar IDs específicos, atualize a variável @specificRoomId
+# 5. Monitore os logs do servidor para ver as ações em tempo real
+#
+# Endpoints disponíveis:
+# - GET    /room                    → Listar todas as salas
+# - POST   /room                    → Criar nova sala
+# - GET    /room/:id                → Buscar sala específica
+# - DELETE /room/:id                → Deletar sala
+# - GET    /room/:id/messages       → Buscar mensagens da sala
+# - GET    /room/:id/participants   → Buscar participantes da sala
+# - GET    /tests/rooms             → Página de teste WebSocket
+#
+# WebSocket namespace: /room
+# - Eventos: joinRoom, leaveRoom, sendMessage, getRoomInfo
+# - Para testar WebSocket, use a página: http://localhost:3000/tests/rooms
