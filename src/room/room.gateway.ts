@@ -13,7 +13,7 @@ import { Server, Socket } from 'socket.io';
 import { RoomService } from './room.service';
 
 @WebSocketGateway({
-  namespace: '/room', // Namespace específico para salas
+  namespace: process.env.WEBSOCKET_NAMESPACE || '/room', // Namespace específico para salas
   cors: {
     origin: '*', // Configure adequadamente para produção
   },
