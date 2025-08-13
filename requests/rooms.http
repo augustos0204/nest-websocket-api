@@ -1,5 +1,5 @@
 ### Variáveis
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:{{$dotenv PORT}}
 @roomName = Sala de Teste REST Client
 @roomNameUpdate = Sala Atualizada
 @roomId = {{createRoom.response.body.id}}
