@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventsService } from '../events/events.service';
 
 export interface Room {
   id: string;
@@ -21,6 +22,8 @@ export class RoomService {
   private readonly logger = new Logger(RoomService.name);
   private rooms: Map<string, Room> = new Map();
 
+  constructor(private readonly eventsService: EventsService) {}
+
   createRoom(name: string): Room {
     const roomId = this.generateRoomId();
     const room: Room = {
@@ -34,6 +37,13 @@ export class RoomService {
 
     this.rooms.set(roomId, room);
     this.logger.log(`Sala criada: ${roomId} (${name})`);
+
+    this.eventsService.emitMetricsEvent('metrics:room-created', {
+      roomId,
+      roomName: name,
+      timestamp: room.createdAt,
+    });
+
     return room;
   }
 
@@ -45,7 +55,11 @@ export class RoomService {
     return Array.from(this.rooms.values());
   }
 
-  joinRoom(roomId: string, clientId: string, participantName?: string | null): boolean {
+  joinRoom(
+    roomId: string,
+    clientId: string,
+    participantName?: string | null,
+  ): boolean {
     const room = this.rooms.get(roomId);
     if (!room) {
       this.logger.warn(`Tentativa de entrar em sala inexistente: ${roomId}`);
@@ -55,7 +69,17 @@ export class RoomService {
     if (!room.participants.includes(clientId)) {
       room.participants.push(clientId);
       room.participantNames.set(clientId, participantName || null);
-      this.logger.log(`Cliente ${clientId} (${participantName || 'sem nome'}) entrou na sala ${roomId}`);
+      this.logger.log(
+        `Cliente ${clientId} (${participantName || 'sem nome'}) entrou na sala ${roomId}`,
+      );
+
+      this.eventsService.emitMetricsEvent('metrics:user-joined-room', {
+        clientId,
+        roomId,
+        roomName: room.name,
+        participantName: participantName || null,
+        timestamp: new Date(),
+      });
     } else {
       // Atualizar nome se já estiver na sala
       room.participantNames.set(clientId, participantName || null);
@@ -72,18 +96,33 @@ export class RoomService {
 
     const index = room.participants.indexOf(clientId);
     if (index > -1) {
+      const participantName = room.participantNames.get(clientId);
       room.participants.splice(index, 1);
       room.participantNames.delete(clientId);
       this.logger.log(`Cliente ${clientId} saiu da sala ${roomId}`);
+
+      this.eventsService.emitMetricsEvent('metrics:user-left-room', {
+        clientId,
+        roomId,
+        roomName: room.name,
+        participantName: participantName || null,
+        timestamp: new Date(),
+      });
     }
 
     return true;
   }
 
-  addMessage(roomId: string, clientId: string, message: string): RoomMessage | null {
+  addMessage(
+    roomId: string,
+    clientId: string,
+    message: string,
+  ): RoomMessage | null {
     const room = this.rooms.get(roomId);
     if (!room) {
-      this.logger.warn(`Tentativa de enviar mensagem para sala inexistente: ${roomId}`);
+      this.logger.warn(
+        `Tentativa de enviar mensagem para sala inexistente: ${roomId}`,
+      );
       return null;
     }
 
@@ -96,14 +135,29 @@ export class RoomService {
 
     room.messages.push(roomMessage);
     this.logger.log(`Mensagem adicionada à sala ${roomId}: ${message}`);
-    
+
+    this.eventsService.emitMetricsEvent('metrics:message-sent', {
+      messageId: roomMessage.id,
+      clientId,
+      roomId,
+      roomName: room.name,
+      timestamp: roomMessage.timestamp,
+    });
+
     return roomMessage;
   }
 
   deleteRoom(roomId: string): boolean {
+    const room = this.rooms.get(roomId);
     const deleted = this.rooms.delete(roomId);
-    if (deleted) {
+    if (deleted && room) {
       this.logger.log(`Sala deletada: ${roomId}`);
+
+      this.eventsService.emitMetricsEvent('metrics:room-deleted', {
+        roomId,
+        roomName: room.name,
+        timestamp: new Date(),
+      });
     }
     return deleted;
   }
@@ -120,26 +174,34 @@ export class RoomService {
     return room.participantNames.get(clientId) || null;
   }
 
-  updateParticipantName(roomId: string, clientId: string, name: string | null): boolean {
+  updateParticipantName(
+    roomId: string,
+    clientId: string,
+    name: string | null,
+  ): boolean {
     const room = this.rooms.get(roomId);
     if (!room || !room.participants.includes(clientId)) {
       return false;
     }
-    
+
     room.participantNames.set(clientId, name);
-    this.logger.log(`Nome do cliente ${clientId} atualizado para: ${name || 'sem nome'}`);
+    this.logger.log(
+      `Nome do cliente ${clientId} atualizado para: ${name || 'sem nome'}`,
+    );
     return true;
   }
 
-  getParticipantsWithNames(roomId: string): Array<{clientId: string, name: string | null}> {
+  getParticipantsWithNames(
+    roomId: string,
+  ): Array<{ clientId: string; name: string | null }> {
     const room = this.rooms.get(roomId);
     if (!room) {
       return [];
     }
-    
-    return room.participants.map(clientId => ({
+
+    return room.participants.map((clientId) => ({
       clientId,
-      name: room.participantNames.get(clientId) || null
+      name: room.participantNames.get(clientId) || null,
     }));
   }
 
