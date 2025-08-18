@@ -35,7 +35,7 @@ function settingsModule() {
             if (confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
                 this.tempConfig = {
                     baseUrl: 'http://localhost:3000',
-                    websocketNamespace: '/room'
+                    websocketNamespace: '/ws/rooms'
                 };
             }
         },

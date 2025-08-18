@@ -22,7 +22,7 @@ function roomStreamApp() {
         healthStatus: 'healthy',
         config: {
             baseUrl: 'http://localhost:3000',
-            websocketNamespace: '/room'
+            websocketNamespace: '/ws/rooms'
         },
         
         // Chat

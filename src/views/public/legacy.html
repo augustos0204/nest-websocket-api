@@ -486,11 +486,11 @@
             }
 
             updateConnectionStatus('connecting');
-            socket = io('/room');
+            socket = io('/ws/rooms');
             
             socket.on('connect', () => {
                 updateConnectionStatus('connected');
-                addMessage('✅ Conectado ao servidor WebSocket (namespace /room)', 'success');
+                addMessage('✅ Conectado ao servidor WebSocket (namespace /ws/rooms)', 'success');
             });
 
             socket.on('disconnect', () => {

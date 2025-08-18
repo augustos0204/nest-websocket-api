@@ -14,10 +14,14 @@ import { RoomService } from './room.service';
 import { EventsService } from '../events/events.service';
 
 @WebSocketGateway({
-  namespace: process.env.WEBSOCKET_NAMESPACE || '/room', // Namespace específico para salas
+  namespace: process.env.WEBSOCKET_NAMESPACE || '/ws/rooms', // Namespace específico para salas
   cors: {
-    origin: process.env.CORS_ORIGIN || '*', // Configure adequadamente para produção
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['*'],
+    credentials: true,
   },
+  transports: ['websocket', 'polling'],
 })
 export class RoomGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -31,7 +35,7 @@ export class RoomGateway
   ) {}
 
   afterInit(_server: Server) {
-    this.logger.log('Room Gateway inicializado no namespace /room');
+    this.logger.log(`Room Gateway inicializado no namespace ${process.env.WEBSOCKET_NAMESPACE || '/ws/rooms'}`);
   }
 
   handleConnection(client: Socket) {
@@ -41,7 +45,7 @@ export class RoomGateway
       namespace,
       timestamp: new Date(),
     });
-    this.logger.log(`Cliente conectado no namespace room: ${client.id}`);
+    this.logger.log(`Cliente conectado no namespace ${namespace}: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
@@ -51,7 +55,7 @@ export class RoomGateway
       namespace,
       timestamp: new Date(),
     });
-    this.logger.log(`Cliente desconectado do namespace room: ${client.id}`);
+    this.logger.log(`Cliente desconectado do namespace ${namespace}: ${client.id}`);
 
     // Remove o cliente de todas as salas ao desconectar
     const rooms = this.roomService.getAllRooms();
@@ -82,7 +86,7 @@ export class RoomGateway
     const room = this.roomService.getRoom(roomId);
 
     if (!room) {
-      client.emit('error', { message: 'Sala não encontrada' });
+      client.emit('error', { message: 'Sala não encontrada x1' });
       return;
     }
 
@@ -186,7 +190,7 @@ export class RoomGateway
     const room = this.roomService.getRoom(roomId);
 
     if (!room) {
-      client.emit('error', { message: 'Sala não encontrada' });
+      client.emit('error', { message: 'Sala não encontrada x2' });
       return;
     }
 
