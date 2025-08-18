@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoomStream - Admin Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Chart.js para dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* CSS Custom Properties */
+        :root {
+            --sidebar-width: 280px;
+            --header-height: 64px;
+            --primary-color: #3b82f6;
+            --primary-dark: #1d4ed8;
+        }
+        
+        /* Animações */
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .animate-slide-in { animation: slideIn 0.3s ease-out; }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        .animate-pulse-custom { animation: pulse 2s infinite; }
+        
+        /* Sidebar responsiva */
+        .sidebar-open { transform: translateX(0); }
+        .sidebar-closed { transform: translateX(-100%); }
+        
+        /* Glass effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Chat bubble */
+        .chat-bubble {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-expanded {
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            height: 600px;
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white" x-data="roomStreamApp()">
+    
+    <!-- Overlay para mobile quando sidebar aberta -->
+    <div x-show="sidebarOpen" 
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="sidebarOpen = false"
+         class="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden">
+    </div>
+    
+    <!-- Sidebar -->
+    <aside :class="sidebarOpen ? 'w-80' : 'w-16'"
+           class="fixed inset-y-0 left-0 z-30 bg-white dark:bg-gray-800 shadow-xl transform transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 h-full flex flex-col">
+        
+        <!-- Logo -->
+        <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700" :class="!sidebarOpen && 'justify-center px-3'">
+            <div class="flex items-center space-x-3" x-show="sidebarOpen">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="radio" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">RoomStream</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Admin Panel</p>
+                </div>
+            </div>
+            
+            <!-- Logo compacto quando fechado -->
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center" x-show="!sidebarOpen">
+                <i data-lucide="radio" class="w-6 h-6 text-white"></i>
+            </div>
+            
+            <!-- Toggle Button -->
+            <button @click="sidebarOpen = !sidebarOpen" 
+                    class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    :class="!sidebarOpen && 'hidden'">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <!-- Toggle button quando sidebar está fechada -->
+        <div class="absolute -right-3 top-20 z-40" x-show="!sidebarOpen">
+            <button @click="sidebarOpen = true" 
+                    class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-700">
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+            </button>
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a @click="currentView = 'dashboard'" 
+               :class="currentView === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+               class="flex items-center px-4 py-3 text-sm font-medium rounded-lg cursor-pointer border-l-4 border-transparent"
+               :class="!sidebarOpen && 'justify-center'">
+                <i data-lucide="bar-chart-3" class="w-5 h-5" :class="sidebarOpen ? 'mr-3' : ''"></i>
+                <span x-show="sidebarOpen">Dashboard</span>
+            </a>
+            
+            <a @click="currentView = 'rooms'" 
+               :class="currentView === 'rooms' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+               class="flex items-center px-4 py-3 text-sm font-medium rounded-lg cursor-pointer border-l-4 border-transparent relative"
+               :class="!sidebarOpen && 'justify-center'">
+                <i data-lucide="users" class="w-5 h-5" :class="sidebarOpen ? 'mr-3' : ''"></i>
+                <span x-show="sidebarOpen" class="flex-1">Gerenciar Rooms</span>
+                <span x-show="sidebarOpen" class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded-full" x-text="rooms.length"></span>
+                <!-- Badge para sidebar fechada -->
+                <div x-show="!sidebarOpen" class="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center" x-text="rooms.length"></div>
+            </a>
+            
+            <a @click="currentView = 'settings'" 
+               :class="currentView === 'settings' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+               class="flex items-center px-4 py-3 text-sm font-medium rounded-lg cursor-pointer border-l-4 border-transparent"
+               :class="!sidebarOpen && 'justify-center'">
+                <i data-lucide="settings" class="w-5 h-5" :class="sidebarOpen ? 'mr-3' : ''"></i>
+                <span x-show="sidebarOpen">Configurações</span>
+            </a>
+        </nav>
+        
+        <!-- Footer da sidebar -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700" :class="!sidebarOpen && 'px-2'">
+            <div class="flex items-center space-x-3" :class="!sidebarOpen && 'justify-center'">
+                <div class="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 min-w-0" x-show="sidebarOpen">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">Admin User</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">admin@roomstream.com</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <div class="flex flex-col h-screen" :class="sidebarOpen ? 'lg:ml-80' : 'lg:ml-16'">
+        
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 w-full">
+            <div class="flex items-center justify-between px-6 py-4 w-full">
+                
+                <!-- Left side -->
+                <div class="flex items-center space-x-4">
+                    <!-- Toggle button sempre visível -->
+                    <button @click="sidebarOpen = !sidebarOpen" 
+                            class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i :data-lucide="sidebarOpen ? 'panel-left-close' : 'panel-left-open'" class="w-5 h-5"></i>
+                    </button>
+                    
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white" x-text="getViewTitle()"></h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400" x-text="getViewDescription()"></p>
+                    </div>
+                </div>
+                
+                <!-- Right side -->
+                <div class="flex items-center space-x-4">
+                    
+                    <!-- Health Check -->
+                    <div class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+                        <div :class="healthStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'" 
+                             class="w-3 h-3 rounded-full animate-pulse-custom"></div>
+                        <span class="text-sm font-medium" x-text="healthStatus === 'healthy' ? 'Sistema OK' : 'Sistema com problemas'"></span>
+                    </div>
+                    
+                    <!-- Config Button -->
+                    <button @click="showConfigModal = true" 
+                            class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                    </button>
+                    
+                    <!-- Theme Toggle -->
+                    <button @click="toggleTheme()" 
+                            class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i data-lucide="sun" class="w-5 h-5" x-show="!darkMode"></i>
+                        <i data-lucide="moon" class="w-5 h-5" x-show="darkMode"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Content Area -->
+        <main class="flex-1 overflow-hidden">
+            
+            <!-- Dashboard View -->
+            <div x-show="currentView === 'dashboard'" class="h-full p-6 overflow-y-auto animate-fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    
+                    <!-- Metrics Cards -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total de Rooms</p>
+                                <p class="text-3xl font-bold text-gray-900 dark:text-white" x-text="metrics.totalRooms"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="users" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-green-500 text-sm font-medium">+12%</span>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">desde ontem</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Usuários Online</p>
+                                <p class="text-3xl font-bold text-gray-900 dark:text-white" x-text="metrics.onlineUsers"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="user-check" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-green-500 text-sm font-medium">+5%</span>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">última hora</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Mensagens/Min</p>
+                                <p class="text-3xl font-bold text-gray-900 dark:text-white" x-text="metrics.messagesPerMin"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="message-circle" class="w-6 h-6 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-red-500 text-sm font-medium">-2%</span>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">desde ontem</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Uptime</p>
+                                <p class="text-3xl font-bold text-gray-900 dark:text-white">99.9%</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="activity" class="w-6 h-6 text-yellow-600 dark:text-yellow-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-green-500 text-sm font-medium">Estável</span>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">últimos 30 dias</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Atividade de Mensagens</h3>
+                        <div class="h-64">
+                            <canvas id="messagesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Rooms Mais Ativas</h3>
+                        <div class="space-y-4">
+                            <template x-for="room in topRooms" :key="room.id">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="users" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900 dark:text-white" x-text="room.name"></p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400" x-text="room.participants + ' participantes'"></p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium text-gray-900 dark:text-white" x-text="room.messages"></p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">mensagens</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rooms Management View -->
+            <div x-show="currentView === 'rooms'" class="h-full flex animate-fade-in">
+                
+                <!-- Rooms List -->
+                <div class="w-2/3 p-6 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+                    
+                    <!-- Header da lista -->
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Rooms Ativas</h3>
+                        <button @click="showCreateRoomModal = true" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Nova Room</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Lista de rooms -->
+                    <div class="space-y-4">
+                        <template x-for="room in rooms" :key="room.id">
+                            <div @click="selectedRoom = room" 
+                                 :class="selectedRoom?.id === room.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'"
+                                 class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-gray-900 dark:text-white" x-text="room.name"></h4>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            <span x-text="room.participants?.length || 0"></span> participantes • 
+                                            <span x-text="room.messages?.length || 0"></span> mensagens
+                                        </p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1" x-text="'Criada em ' + formatDate(room.createdAt)"></p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <div :class="room.participants?.length > 0 ? 'bg-green-500' : 'bg-gray-400'" 
+                                             class="w-3 h-3 rounded-full"></div>
+                                        <button @click.stop="deleteRoom(room.id)" 
+                                                class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Room Details Panel -->
+                <div class="w-1/3 p-6 bg-gray-50 dark:bg-gray-800/50">
+                    <template x-if="!selectedRoom">
+                        <div class="text-center py-12">
+                            <i data-lucide="mouse-pointer-click" class="w-12 h-12 mx-auto text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 dark:text-gray-400">Selecione uma room para ver os detalhes</p>
+                        </div>
+                    </template>
+                    
+                    <template x-if="selectedRoom">
+                        <div>
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" x-text="selectedRoom.name"></h3>
+                                <button @click="toggleChat()" 
+                                        class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                    <span>Chat</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Room Stats -->
+                            <div class="space-y-4">
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
+                                    <h4 class="font-medium text-gray-900 dark:text-white mb-3">Participantes Online</h4>
+                                    <template x-if="!selectedRoom.participants || selectedRoom.participants.length === 0">
+                                        <p class="text-gray-500 dark:text-gray-400 text-sm">Nenhum participante online</p>
+                                    </template>
+                                    <div class="space-y-2">
+                                        <template x-for="participant in selectedRoom.participants || []" :key="participant">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                                                    <i data-lucide="user" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                                                </div>
+                                                <span class="text-sm text-gray-900 dark:text-white" x-text="participant"></span>
+                                                <div class="w-2 h-2 bg-green-400 rounded-full ml-auto"></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
+                                    <h4 class="font-medium text-gray-900 dark:text-white mb-3">Mensagens Recentes</h4>
+                                    <template x-if="!selectedRoom.messages || selectedRoom.messages.length === 0">
+                                        <p class="text-gray-500 dark:text-gray-400 text-sm">Nenhuma mensagem ainda</p>
+                                    </template>
+                                    <div class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                                        <template x-for="message in (selectedRoom.messages || []).slice(-5)" :key="message.id">
+                                            <div class="text-sm">
+                                                <span class="font-medium text-blue-600 dark:text-blue-400" x-text="message.clientId + ':'"></span>
+                                                <span class="text-gray-900 dark:text-white ml-2" x-text="message.message"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            
+            <!-- Settings View -->
+            <div x-show="currentView === 'settings'" class="h-full p-6 overflow-y-auto animate-fade-in">
+                <div class="max-w-2xl">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Configurações do Sistema</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-4">Conexão da API</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL Base</label>
+                                    <input type="text" x-model="config.baseUrl" 
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Namespace WebSocket</label>
+                                    <input type="text" x-model="config.namespace" 
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                </div>
+                                <button @click="saveConfig()" 
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    Salvar Configurações
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Chat Bubble/Modal -->
+    <div x-show="chatOpen" 
+         :class="chatExpanded ? 'chat-expanded' : ''"
+         class="chat-bubble w-80 h-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-95"
+         x-transition:enter-end="opacity-100 transform scale-100">
+        
+        <!-- Chat Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900 dark:text-white" x-text="selectedRoom?.name || 'Chat'"></h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Em tempo real</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button @click="chatExpanded = !chatExpanded" 
+                        class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i :data-lucide="chatExpanded ? 'minimize-2' : 'maximize-2'" class="w-4 h-4"></i>
+                </button>
+                <button @click="chatOpen = false" 
+                        class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat Messages -->
+        <div class="flex-1 p-4 overflow-y-auto custom-scrollbar">
+            <div class="space-y-3">
+                <template x-for="message in chatMessages" :key="message.id">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="user" class="w-3 h-3"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="message.clientId"></span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400" x-text="formatTime(message.timestamp)"></span>
+                            </div>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mt-1" x-text="message.message"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Chat Input -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex space-x-2">
+                <input type="text" 
+                       x-model="newMessage" 
+                       @keyup.enter="sendMessage()"
+                       placeholder="Digite sua mensagem..."
+                       class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm">
+                <button @click="sendMessage()" 
+                        class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Config Modal -->
+    <div x-show="showConfigModal" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showConfigModal = false"></div>
+            
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 sm:mx-0 sm:h-10 sm:w-10">
+                            <i data-lucide="settings" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Configurações de Conexão</h3>
+                            <div class="mt-4 space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL Base da API</label>
+                                    <input type="text" 
+                                           x-model="config.baseUrl" 
+                                           placeholder="http://localhost:3000"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Namespace WebSocket</label>
+                                    <input type="text" 
+                                           x-model="config.namespace" 
+                                           placeholder="/room"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button @click="saveConfig(); showConfigModal = false" 
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Salvar
+                    </button>
+                    <button @click="showConfigModal = false" 
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Room Modal -->
+    <div x-show="showCreateRoomModal" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showCreateRoomModal = false"></div>
+            
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 sm:mx-0 sm:h-10 sm:w-10">
+                            <i data-lucide="plus" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Criar Nova Room</h3>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nome da Room</label>
+                                <input type="text" 
+                                       x-model="newRoomName" 
+                                       @keyup.enter="createRoom(); showCreateRoomModal = false"
+                                       placeholder="Digite o nome da room..."
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button @click="createRoom(); showCreateRoomModal = false" 
+                            :disabled="!newRoomName.trim()"
+                            :class="newRoomName.trim() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Criar Room
+                    </button>
+                    <button @click="showCreateRoomModal = false" 
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-2"
+         class="fixed top-4 right-4 z-50">
+        <div :class="toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'" 
+             class="px-6 py-4 rounded-lg text-white shadow-lg flex items-center space-x-3">
+            <i :data-lucide="toast.type === 'error' ? 'alert-circle' : 'check-circle'" class="w-5 h-5"></i>
+            <span x-text="toast.message"></span>
+        </div>
+    </div>
+
+    <script>
+        function roomStreamApp() {
+            return {
+                // UI State
+                sidebarOpen: false,
+                currentView: 'dashboard',
+                darkMode: false,
+                showConfigModal: false,
+                showCreateRoomModal: false,
+                chatOpen: false,
+                chatExpanded: false,
+                
+                // Data
+                rooms: [],
+                selectedRoom: null,
+                metrics: {
+                    totalRooms: 8,
+                    onlineUsers: 24,
+                    messagesPerMin: 156,
+                    uptime: 99.9
+                },
+                topRooms: [
+                    { id: 1, name: "Sala Geral", participants: 12, messages: 245 },
+                    { id: 2, name: "Desenvolvedores", participants: 8, messages: 189 },
+                    { id: 3, name: "Suporte", participants: 5, messages: 167 }
+                ],
+                healthStatus: 'healthy',
+                config: {
+                    baseUrl: 'http://localhost:3000',
+                    namespace: '/room'
+                },
+                
+                // Chat
+                chatMessages: [
+                    { id: 1, clientId: 'user1', message: 'Olá pessoal!', timestamp: new Date() },
+                    { id: 2, clientId: 'user2', message: 'Como estão?', timestamp: new Date() }
+                ],
+                newMessage: '',
+                newRoomName: '',
+                
+                // Toast
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
+                
+                init() {
+                    this.loadRooms();
+                    this.checkHealth();
+                    this.loadConfig();
+                    this.initCharts();
+                    
+                    // Auto refresh data
+                    setInterval(() => {
+                        this.loadRooms();
+                        this.checkHealth();
+                    }, 30000);
+                    
+                    // Create icons
+                    this.$nextTick(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    });
+                },
+                
+                async loadRooms() {
+                    try {
+                        const response = await fetch(`${this.config.baseUrl}/room`);
+                        if (response.ok) {
+                            this.rooms = await response.json();
+                            this.metrics.totalRooms = this.rooms.length;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar rooms:', error);
+                    }
+                },
+                
+                async checkHealth() {
+                    try {
+                        const response = await fetch(`${this.config.baseUrl}/health`);
+                        this.healthStatus = response.ok ? 'healthy' : 'unhealthy';
+                    } catch (error) {
+                        this.healthStatus = 'unhealthy';
+                    }
+                },
+                
+                async createRoom() {
+                    if (!this.newRoomName.trim()) return;
+                    
+                    try {
+                        const response = await fetch(`${this.config.baseUrl}/room`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: this.newRoomName })
+                        });
+                        
+                        if (response.ok) {
+                            const room = await response.json();
+                            this.rooms.push(room);
+                            this.newRoomName = '';
+                            this.showToast(`Room "${room.name}" criada com sucesso!`);
+                        }
+                    } catch (error) {
+                        this.showToast('Erro ao criar room', 'error');
+                    }
+                },
+                
+                async deleteRoom(roomId) {
+                    if (!confirm('Tem certeza que deseja deletar esta room?')) return;
+                    
+                    try {
+                        const response = await fetch(`${this.config.baseUrl}/room/${roomId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            this.rooms = this.rooms.filter(room => room.id !== roomId);
+                            if (this.selectedRoom?.id === roomId) {
+                                this.selectedRoom = null;
+                            }
+                            this.showToast('Room deletada com sucesso!');
+                        }
+                    } catch (error) {
+                        this.showToast('Erro ao deletar room', 'error');
+                    }
+                },
+                
+                toggleChat() {
+                    this.chatOpen = !this.chatOpen;
+                    if (this.chatOpen && this.selectedRoom) {
+                        // Connect to WebSocket for the selected room
+                        this.connectToRoom(this.selectedRoom.id);
+                    }
+                },
+                
+                connectToRoom(roomId) {
+                    // WebSocket connection logic would go here
+                    console.log(`Connecting to room: ${roomId}`);
+                },
+                
+                sendMessage() {
+                    if (!this.newMessage.trim()) return;
+                    
+                    const message = {
+                        id: Date.now(),
+                        clientId: 'admin',
+                        message: this.newMessage,
+                        timestamp: new Date()
+                    };
+                    
+                    this.chatMessages.push(message);
+                    this.newMessage = '';
+                    
+                    // Here you would send the message via WebSocket
+                },
+                
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    document.documentElement.classList.toggle('dark', this.darkMode);
+                },
+                
+                saveConfig() {
+                    localStorage.setItem('roomstream-config', JSON.stringify(this.config));
+                    this.showToast('Configurações salvas!');
+                },
+                
+                loadConfig() {
+                    const saved = localStorage.getItem('roomstream-config');
+                    if (saved) {
+                        this.config = { ...this.config, ...JSON.parse(saved) };
+                    }
+                },
+                
+                initCharts() {
+                    this.$nextTick(() => {
+                        const ctx = document.getElementById('messagesChart');
+                        if (ctx) {
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                                    datasets: [{
+                                        label: 'Mensagens por Hora',
+                                        data: [30, 45, 120, 200, 180, 160],
+                                        borderColor: 'rgb(59, 130, 246)',
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        tension: 0.1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                },
+                
+                getViewTitle() {
+                    const titles = {
+                        dashboard: 'Dashboard',
+                        rooms: 'Gerenciar Rooms',
+                        settings: 'Configurações'
+                    };
+                    return titles[this.currentView] || 'Dashboard';
+                },
+                
+                getViewDescription() {
+                    const descriptions = {
+                        dashboard: 'Visão geral do sistema e métricas em tempo real',
+                        rooms: 'Gerencie rooms ativas e visualize detalhes',
+                        settings: 'Configure conexões e preferências do sistema'
+                    };
+                    return descriptions[this.currentView] || '';
+                },
+                
+                formatDate(date) {
+                    if (!date) return '';
+                    return new Date(date).toLocaleDateString('pt-BR');
+                },
+                
+                formatTime(timestamp) {
+                    if (!timestamp) return '';
+                    return new Date(timestamp).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                },
+                
+                showToast(message, type = 'success') {
+                    this.toast = { show: true, message, type };
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                    
+                    this.$nextTick(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Initialize lucide icons after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
