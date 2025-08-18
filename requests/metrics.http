@@ -1,0 +1,53 @@
+### Variáveis
+@baseUrl = http://localhost:{{$dotenv PORT}}
+
+###############################################
+# 📊 METRICS ENDPOINT - MÉTRICAS DO SISTEMA
+###############################################
+
+### 📈 Obter métricas da aplicação
+# @name getMetrics
+GET {{baseUrl}}/metrics
+Accept: application/json
+
+###
+
+###############################################
+# 📝 DOCUMENTAÇÃO DE USO
+###############################################
+
+# Endpoint: GET /metrics
+#
+# Descrição:
+# Retorna métricas detalhadas sobre o estado atual da aplicação WebSocket
+#
+# Resposta esperada:
+# {
+#   "totalClients": 0,
+#   "totalRooms": 0,
+#   "totalMessages": 0,
+#   "uptime": 12345,
+#   "timestamp": "2025-01-XX...",
+#   "connectionsByNamespace": {
+#     "/room": 0
+#   }
+# }
+#
+# Campos da resposta:
+# - totalClients: Número total de clientes conectados
+# - totalRooms: Número de salas ativas no sistema
+# - totalMessages: Total de mensagens enviadas desde o início
+# - uptime: Tempo de atividade da aplicação em milissegundos
+# - timestamp: Timestamp da coleta das métricas
+# - connectionsByNamespace: Conexões agrupadas por namespace WebSocket
+#
+# Códigos de resposta:
+# - 200 OK: Métricas coletadas com sucesso
+# - 500 Error: Problemas na coleta (caso ocorram)
+#
+# Uso recomendado:
+# - Sistemas de monitoramento (Grafana, Prometheus)
+# - Dashboards de performance e utilização
+# - Alertas automáticos baseados em thresholds
+# - Análise de capacidade e planejamento
+# - Relatórios de uso do sistema

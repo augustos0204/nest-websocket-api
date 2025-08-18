@@ -1,0 +1,44 @@
+### Variáveis
+@baseUrl = http://localhost:{{$dotenv PORT}}
+
+###############################################
+# 🏥 HEALTH ENDPOINT - MONITORAMENTO DA API
+###############################################
+
+### ✅ Verificar status da aplicação
+# @name getHealthStatus
+GET {{baseUrl}}/health
+Accept: application/json
+
+###
+
+###############################################
+# 📝 DOCUMENTAÇÃO DE USO
+###############################################
+
+# Endpoint: GET /health
+#
+# Descrição:
+# Retorna o status de saúde da aplicação para monitoramento e health checks
+#
+# Resposta esperada:
+# {
+#   "status": "ok",
+#   "timestamp": "2025-01-XX...",
+#   "uptime": 12345
+# }
+#
+# Campos da resposta:
+# - status: Status da aplicação (sempre "ok")
+# - timestamp: Timestamp atual da verificação
+# - uptime: Tempo de atividade da aplicação em milissegundos
+#
+# Códigos de resposta:
+# - 200 OK: Aplicação funcionando normalmente
+# - 500 Error: Problemas na aplicação (caso ocorram)
+#
+# Uso recomendado:
+# - Sistemas de monitoramento e alertas
+# - Load balancer health checks  
+# - Pipelines de CI/CD
+# - Scripts de DevOps automation
