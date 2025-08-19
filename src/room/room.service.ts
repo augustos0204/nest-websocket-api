@@ -1,21 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventsService } from '../events/events.service';
-
-export interface Room {
-  id: string;
-  name: string;
-  participants: string[];
-  participantNames: Map<string, string | null>; // clientId -> name
-  createdAt: Date;
-  messages: RoomMessage[];
-}
-
-export interface RoomMessage {
-  id: string;
-  clientId: string;
-  message: string;
-  timestamp: Date;
-}
+import { Room, RoomMessage } from '../types/room.types';
 
 @Injectable()
 export class RoomService {

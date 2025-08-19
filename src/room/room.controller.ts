@@ -9,11 +9,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
-import type { Room } from './room.service';
-
-export class CreateRoomDto {
-  name: string;
-}
+import type { Room } from '../types/room.types';
+import { CreateRoomDto } from '../types/room.types';
 
 @Controller('room')
 export class RoomController {

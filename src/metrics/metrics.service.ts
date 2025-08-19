@@ -12,25 +12,7 @@ import {
   UserRoomEventPayload,
   MessageEventPayload,
 } from '../events/metrics.events';
-
-export interface RoomMetrics {
-  id: string;
-  name: string;
-  messages: number;
-  connections: number;
-  createdAt: Date;
-  uptime: string;
-}
-
-export interface MetricsResponse {
-  totalClients: number;
-  totalRooms: number;
-  totalMessages: number;
-  uptime: number;
-  timestamp: string;
-  connectionsByNamespace: Record<string, number>;
-  rooms: RoomMetrics[];
-}
+import { RoomMetrics, MetricsResponse } from '../types/metrics.types';
 
 @Injectable()
 export class MetricsService implements OnModuleInit, OnModuleDestroy {
