@@ -1,4 +1,4 @@
-# 🔌 NestJS WebSocket Room API
+# 🔌 RoomStream - API
 
 A robust and scalable WebSocket API built with **NestJS** and **Socket.IO** for creating and managing real-time chat rooms. Features prototype web interfaces for administration and testing functionalities.
 
