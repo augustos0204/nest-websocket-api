@@ -19,7 +19,7 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`🚀 Aplicação rodando na porta ${port}`);
-  console.log(`📱 Interface de teste: http://localhost:${port}/tests/rooms`);
+  console.log(`📱 Interface de teste: http://localhost:${port}/admin`);
   console.log(
     `🔌 WebSocket namespace: ${process.env.WEBSOCKET_NAMESPACE || '/room'}`,
   );
