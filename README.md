@@ -1,7 +1,8 @@
 # 🔌 RoomStream - API
 
 A robust and scalable WebSocket API built with **NestJS** and **Socket.IO** for creating and managing real-time chat rooms.
-> **⚠️ Note**: The web interfaces at `/admin/*` are **prototype/demo versions** for development and testing purposes.
+
+> **⚠️ Note**: This project focuses on **backend implementation**. The web interface at `/admin` is a **basic prototype** for development testing and API validation purposes only.
 
 ## 📋 Table of Contents
 
@@ -20,21 +21,29 @@ A robust and scalable WebSocket API built with **NestJS** and **Socket.IO** for 
 
 ## ✨ Features
 
-### 🎯 Core Features
+### 🎯 Core Backend Features
 - **Real-time room creation and management**
-- **Participant system** with customizable names
+- **Participant system** with customizable names  
 - **Real-time messaging** with persistent history
 - **Multiple simultaneous rooms** per user
 - **Join/leave events** with notifications
-- **Metrics system** for monitoring
+- **Comprehensive metrics system** for monitoring
 
-### 🛠️ Technical Features
-- **Isolated namespace** (`/ws/rooms`) for WebSocket
-- **Robust validations** on all endpoints
+### 🛠️ Backend Architecture  
+- **Isolated WebSocket namespace** (`/ws/rooms`)
+- **Robust input validation** on all endpoints
 - **Automatic disconnection handling**
 - **Configurable CORS** for different environments
-- **Detailed logging** system
-- **Modular and scalable** architecture
+- **Detailed logging** and error handling
+- **Modular NestJS architecture** for scalability
+- **Event-driven system** with @nestjs/event-emitter
+- **TypeScript implementation** for type safety
+
+### 🧪 Development Tools
+- **Basic web interface** for API testing
+- **HTTP request files** for endpoint validation  
+- **Health checks** and **metrics endpoints**
+- **Comprehensive logging** for debugging
 
 ## 🚀 Technologies
 
@@ -45,10 +54,10 @@ A robust and scalable WebSocket API built with **NestJS** and **Socket.IO** for 
 - **[@nestjs/event-emitter](https://docs.nestjs.com/techniques/events)** - Event system
 - **[@nestjs/config](https://docs.nestjs.com/techniques/configuration)** - Configuration management
 
-### Frontend - (Prototypes and debug cases)
-- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
-- **[Alpine.js](https://alpinejs.dev/)** - Reactive JavaScript framework
-- **HTML5 & JavaScript ES6+** - Modern web technologies
+### Development Interface
+- **[Tailwind CSS](https://tailwindcss.com/)** - For basic styling
+- **[Alpine.js](https://alpinejs.dev/)** - For simple interactivity
+- **HTML5 & JavaScript** - Basic web technologies for testing interface
 
 ### DevTools
 - **[ESLint](https://eslint.org/)** & **[Prettier](https://prettier.io/)** - Code quality
@@ -127,9 +136,9 @@ pnpm run start:dev
 ```
 
 The server will be available at:
-- **REST API**: `http://localhost:3000`
-- **WebSocket**: `ws://localhost:3000/ws/rooms`
-- **Web Interface for Debug/Tests**: `http://localhost:3000/admin`
+- **🎯 REST API**: `http://localhost:3000`
+- **🔌 WebSocket**: `ws://localhost:3000/ws/rooms`
+- **🧪 Testing Interface**: `http://localhost:3000/admin` (development tool)
 
 ## 📚 API Endpoints
 
@@ -289,18 +298,18 @@ socket.on('error', (error) => {
 });
 ```
 
-## 🎨 Prototype Web Interface
+## 🧪 Development Testing Interface
 
-### Websocket Client Tester (`/admin/admin`) - **PROTOTYPE**
-Complete interface to test all WebSocket functionalities:
+### Basic WebSocket Tester (`/admin`)
+Simple testing interface for API validation during development:
 
-- **WebSocket connection** with visual status
-- **Room management** via interface
-- **Real-time event testing**
-- **Detailed logging** of all actions
-- **Responsive interface** with Tailwind CSS
+- **Connection testing** - Verify WebSocket connectivity
+- **Room operations** - Test creation, joining, and leaving rooms
+- **Message flow** - Validate real-time messaging functionality
+- **Event monitoring** - View transmitted data and debug issues
+- **API endpoint testing** - Quick validation of REST endpoints
 
-> **ℹ️ Usage**: These interfaces are designed for developers to test and understand the API functionality.
+> **⚠️ Purpose**: This is a **development tool** for testing backend functionality, not a production UI solution. The interface provides basic visualization to help developers validate API implementation and identify integration issues.
 
 ## 📁 Project Structure
 
@@ -356,9 +365,9 @@ pnpm run test:e2e
 pnpm run test:cov
 ```
 
-### Manual Testing with HTTP Client
+### Manual API Testing
 
-Use the `hostname/admin` page to test endpoints:
+You can test the REST API using any HTTP client or the provided `.http` files in the `requests/` folder:
 
 ```http
 ### Create a room
@@ -375,6 +384,8 @@ GET http://localhost:3000/room
 ### Get specific room
 GET http://localhost:3000/room/{{roomId}}
 ```
+
+The `/admin` interface can also be used for quick visual testing during development.
 
 ## 📊 Monitoring
 
